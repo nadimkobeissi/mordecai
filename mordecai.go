@@ -159,8 +159,8 @@ func minMaxGuess(gg [][]string, pegs string) []string {
 		"0000", "1000", "2000",
 		"1100", "2100", "2200",
 		"1110", "2110", "2210",
-		"1111", "2111", "2211",
-		"2220", "2222",
+		"2220", "1111", "2111",
+		"2211", "2221", "2222",
 	}
 	targetPegs := possiblePegs[strInSlice(pegs, possiblePegs):]
 	eliminationCount := make([]int, len(gg))
