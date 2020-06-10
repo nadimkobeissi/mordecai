@@ -11,9 +11,7 @@ import (
 	. "github.com/logrusorgru/aurora"
 )
 
-//var pieces = []string{"B", "R", "G", "Y", "P", "W"}
-
-var pieces = []string{"R", "G", "B", "Y", "T", "O", "C", "W"}
+var pieces = []string{"B", "R", "G", "Y", "P", "W"}
 
 func main() {
 	gg := [][]string{}
