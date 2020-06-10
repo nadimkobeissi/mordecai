@@ -5,136 +5,156 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sort"
 	"strings"
-	"time"
 
 	. "github.com/logrusorgru/aurora"
 )
 
-var guesses = [][]string{}
-var pieces = []string{"B", "R", "G", "Y", "P", "W"}
-var lastPegs = ""
+//var pieces = []string{"B", "R", "G", "Y", "P", "W"}
+
+var pieces = []string{"R", "G", "B", "Y", "T", "O", "C", "W"}
 
 func main() {
-	genGuesses(pieces, 0)
+	gg := [][]string{}
 	turn := 0
-	if getDoIGoFirst() {
-		leftGuesses := makeGuess(guesses, turn)
-		turn++
-		leftGuesses = getCombi(leftGuesses)
-		turn++
-		leftGuesses = makeGuess(leftGuesses, turn)
-		turn++
-		leftGuesses = getCombi(leftGuesses)
-		turn++
-		leftGuesses = makeGuess(leftGuesses, turn)
-		turn++
-		leftGuesses = getCombi(leftGuesses)
-		turn++
-		leftGuesses = makeGuess(leftGuesses, turn)
-		getCombi(leftGuesses)
-	} else {
-		leftGuesses := getCombi(guesses)
-		turn++
-		leftGuesses = makeGuess(leftGuesses, turn)
-		turn++
-		leftGuesses = getCombi(leftGuesses)
-		turn++
-		leftGuesses = makeGuess(leftGuesses, turn)
-		turn++
-		leftGuesses = getCombi(leftGuesses)
-		turn++
-		leftGuesses = makeGuess(leftGuesses, turn)
-		turn++
-		leftGuesses = getCombi(leftGuesses)
-		turn++
-		makeGuess(leftGuesses, turn)
+	pegs := "0000"
+	switch getDuplicatesAllowed() {
+	case true:
+		gg = genGuessesWithDuplicates(pieces, 4)
+	case false:
+		gg = genGuessesNoDuplicates(pieces, 0, [][]string{})
 	}
-}
-
-func makeGuess(gg [][]string, turn int) [][]string {
-	var guess []string
-	leftGuesses := [][]string{}
-	switch turn {
+	switch getGameMode() {
 	case 0:
-		rand.Seed(time.Now().UTC().UnixNano())
-		a := 0
-		b := 0
-		for a == b {
-			a = rand.Intn(len(pieces))
-			b = rand.Intn(len(pieces))
+		for {
+			gg, turn, pegs = makeGuess(gg, turn, pegs)
 		}
-		guess = []string{pieces[a], pieces[a], pieces[b], pieces[b]}
-	default:
-		guess = minMaxGuess(gg, lastPegs)
-	}
-	fmt.Printf("\nMy guess: %s\n", colorPrint(guess))
-	fmt.Printf("Guess certainty: %d%%\n", 100/len(gg))
-	pegs := getPegs()
-	fmt.Println("")
-	for _, g := range gg {
-		cPegs := calculatePegs(g, guess)
-		lastPegs = cPegs
-		if pegs == cPegs {
-			leftGuesses = append(leftGuesses, g)
+	case 1:
+		for {
+			gg, turn, _ = makeGuess(gg, turn, pegs)
+			gg, turn, pegs = getCombi(gg, turn)
+		}
+	case 2:
+		for {
+			gg, turn, pegs = getCombi(gg, turn)
+			gg, turn, _ = makeGuess(gg, turn, pegs)
 		}
 	}
-	if len(leftGuesses) == 1 {
-		fmt.Printf("Combination found: %s.\n", colorPrint(leftGuesses[0]))
-		os.Exit(0)
-	}
-	return leftGuesses
 }
 
-func colorPrint(guess []string) string {
-	colorGuess := ""
-	for _, g := range guess {
-		switch g {
-		case "B":
-			colorGuess += fmt.Sprintf("%s", Blue(g))
-		case "R":
-			colorGuess += fmt.Sprintf("%s", Red(g))
-		case "G":
-			colorGuess += fmt.Sprintf("%s", Green(g))
-		case "Y":
-			colorGuess += fmt.Sprintf("%s", Yellow(g))
-		case "P":
-			colorGuess += fmt.Sprintf("%s", Magenta(g))
-		case "W":
-			colorGuess += fmt.Sprintf("%s", White(g))
-		}
-	}
-	return colorGuess
-}
-
-func getDoIGoFirst() bool {
+func getDuplicatesAllowed() bool {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Do I go first? (y/n): ")
+	fmt.Print("Duplicates allowed? (y/n) ")
+	allowed, _ := reader.ReadString('\n')
+	return allowed[:1] == "y"
+}
+
+func getGameMode() int {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Single player? (y/n) ")
+	single, _ := reader.ReadString('\n')
+	if single[:1] == "y" {
+		return 0
+	}
+	fmt.Print("Do I go first? (y/n) ")
 	first, _ := reader.ReadString('\n')
 	first = strings.ToLower(first)
-	return first[:1] == "y"
+	if first[:1] == "y" {
+		return 1
+	}
+	return 2
 }
 
-func getCombi(gg [][]string) [][]string {
-	leftGuesses := [][]string{}
+func genGuessesWithDuplicates(a []string, l int) [][]string {
+	gg := [][]string{}
+	gn := make([]int, l)
+	for i := 0; i < l; i++ {
+		gn[i] = 0
+	}
+	for {
+		g := []string{}
+		for i := range gn {
+			g = append(g, a[gn[i]])
+		}
+		gg = append(gg, g)
+		ll := l - 1
+		gn[ll]++
+		for ll > 0 {
+			if gn[ll] == len(a) {
+				gn[ll] = 0
+				gn[ll-1]++
+			}
+			ll--
+		}
+		if gn[ll] == len(a) {
+			return gg
+		}
+	}
+}
+
+func genGuessesNoDuplicates(a []string, i int, gg [][]string) [][]string {
+	if i == 4 {
+		aa := make([]string, 4)
+		copy(aa, a)
+		gg = append(gg, aa)
+		return gg
+	}
+	gg = genGuessesNoDuplicates(a, i+1, gg)
+	for j := i + 1; j < len(a); j++ {
+		a[i], a[j] = a[j], a[i]
+		gg = genGuessesNoDuplicates(a, i+1, gg)
+		a[i], a[j] = a[j], a[i]
+	}
+	return gg
+}
+
+func makeGuess(gg [][]string, turn int, pegs string) ([][]string, int, string) {
+	var guess []string
+	lgg := [][]string{}
+	switch turn {
+	case 0:
+		guess = []string{"B", "B", "R", "R"}
+	default:
+		guess = minMaxGuess(gg, pegs)
+	}
+	fmt.Printf("\nMy guess: %s\n", colorPrint(guess))
+	nPegs := getPegs()
+	for _, g := range gg {
+		cPegs := calculatePegs(g, guess)
+		if nPegs == cPegs {
+			lgg = append(lgg, g)
+		}
+	}
+	checkCombiFound(lgg)
+	return lgg, turn + 1, nPegs
+}
+
+func getCombi(gg [][]string, turn int) ([][]string, int, string) {
+	lgg := [][]string{}
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Your guess? ")
 	combi, _ := reader.ReadString('\n')
 	combi = strings.ToUpper(combi)
 	guess := strings.Split(combi, "")
-	pegs := getPegs()
+	nPegs := getPegs()
 	for _, g := range gg {
 		cPegs := calculatePegs(g, guess)
-		lastPegs = cPegs
-		if pegs == cPegs {
-			leftGuesses = append(leftGuesses, g)
+		if nPegs == cPegs {
+			lgg = append(lgg, g)
 		}
 	}
-	if len(leftGuesses) == 1 {
-		fmt.Printf("Combination found: %s.\n", colorPrint(leftGuesses[0]))
-		os.Exit(0)
-	}
-	return leftGuesses
+	checkCombiFound(lgg)
+	return lgg, turn + 1, nPegs
+}
+
+func getPegs() string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Pegs? ")
+	pegs, _ := reader.ReadString('\n')
+	p := strings.Split(pegs[:4], "")
+	sort.Strings(p)
+	return p[3] + p[2] + p[1] + p[0]
 }
 
 func minMaxGuess(gg [][]string, pegs string) []string {
@@ -143,6 +163,7 @@ func minMaxGuess(gg [][]string, pegs string) []string {
 		"1100", "2100", "2200",
 		"1110", "2110", "2210",
 		"1111", "2111", "2211",
+		"2220", "2222",
 	}
 	targetPegs := possiblePegs[strInSlice(pegs, possiblePegs):]
 	eliminationCount := make([]int, len(gg))
@@ -168,13 +189,6 @@ func minMaxGuess(gg [][]string, pegs string) []string {
 		}
 	}
 	return gg[ei[rand.Intn(len(ei))]]
-}
-
-func getPegs() string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Pegs? ")
-	pegs, _ := reader.ReadString('\n')
-	return pegs[:4]
 }
 
 func calculatePegs(guess []string, code []string) string {
@@ -204,28 +218,32 @@ func calculatePegs(guess []string, code []string) string {
 	return strings.Join(pegs, "")
 }
 
-func genGuesses(a []string, i int) {
-	if i == 4 {
-		aa := make([]string, 4)
-		copy(aa, a)
-		guesses = append(guesses, aa)
-		return
-	}
-	genGuesses(a, i+1)
-	for j := i + 1; j < len(a); j++ {
-		a[i], a[j] = a[j], a[i]
-		genGuesses(a, i+1)
-		a[i], a[j] = a[j], a[i]
+func checkCombiFound(gg [][]string) {
+	if len(gg) == 1 {
+		fmt.Printf("Combination found: %s.\n", colorPrint(gg[0]))
+		os.Exit(0)
 	}
 }
 
-func strInSlice(x string, a []string) int {
-	for i, n := range a {
-		if x == n {
-			return i
+func colorPrint(guess []string) string {
+	colorGuess := ""
+	for _, g := range guess {
+		switch g {
+		case "B":
+			colorGuess += Blue(g).BgBlack().String()
+		case "R":
+			colorGuess += Red(g).BgBlack().String()
+		case "G":
+			colorGuess += Green(g).BgBlack().String()
+		case "Y":
+			colorGuess += Yellow(g).BgBlack().String()
+		case "P":
+			colorGuess += Magenta(g).BgBlack().String()
+		default:
+			colorGuess += White(g).BgBlack().String()
 		}
 	}
-	return -1
+	return colorGuess
 }
 
 func minMax(array []int) (int, int) {
@@ -240,4 +258,13 @@ func minMax(array []int) (int, int) {
 		}
 	}
 	return min, max
+}
+
+func strInSlice(x string, a []string) int {
+	for i, n := range a {
+		if x == n {
+			return i
+		}
+	}
+	return -1
 }
