@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -179,14 +178,8 @@ func minMaxGuess(gg [][]string, pegs string) []string {
 			}
 		}
 	}
-	_, max := minMax(eliminationCount)
-	ei := []int{}
-	for i := range eliminationCount {
-		if eliminationCount[i] == max {
-			ei = append(ei, i)
-		}
-	}
-	return gg[ei[rand.Intn(len(ei))]]
+	_, maxi := minMax(eliminationCount)
+	return gg[maxi]
 }
 
 func calculatePegs(guess []string, code []string) string {
@@ -247,15 +240,19 @@ func colorPrint(guess []string) string {
 func minMax(array []int) (int, int) {
 	var min int = array[0]
 	var max int = array[0]
-	for _, value := range array {
+	var mini = 0
+	var maxi = 0
+	for i, value := range array {
 		if max < value {
 			max = value
+			maxi = i
 		}
 		if min > value {
 			min = value
+			mini = i
 		}
 	}
-	return min, max
+	return mini, maxi
 }
 
 func strInSlice(x string, a []string) int {
