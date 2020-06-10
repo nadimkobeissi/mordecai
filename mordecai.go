@@ -109,6 +109,10 @@ func genGuessesNoDuplicates(a []string, i int, gg [][]string) [][]string {
 func makeGuess(gg [][]string, turn int, pegs string) ([][]string, int, string) {
 	var guess []string
 	lgg := [][]string{}
+	if len(gg) == 0 {
+		fmt.Println("Invalid peg information. Combination is unsolvable.")
+		os.Exit(1)
+	}
 	switch turn {
 	case 0:
 		guess = []string{"B", "B", "R", "R"}
