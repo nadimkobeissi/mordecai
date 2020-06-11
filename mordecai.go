@@ -49,20 +49,19 @@ func getDuplicatesAllowed() bool {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Duplicates allowed? (y/n) ")
 	allowed, _ := reader.ReadString('\n')
-	return allowed[:1] == "y"
+	return strings.ToLower(allowed[:1]) == "y"
 }
 
 func getGameMode() int {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Single player? (y/n) ")
 	single, _ := reader.ReadString('\n')
-	if single[:1] == "y" {
+	if strings.ToLower(single[:1]) == "y" {
 		return 0
 	}
 	fmt.Print("Do I go first? (y/n) ")
 	first, _ := reader.ReadString('\n')
-	first = strings.ToLower(first)
-	if first[:1] == "y" {
+	if strings.ToLower(first[:1]) == "y" {
 		return 1
 	}
 	return 2
