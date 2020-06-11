@@ -170,39 +170,33 @@ func getPegs() string {
 }
 
 func minMaxGuess(gg []string, pgg []string, pegs string) string {
-	possiblePegs := []string{
-		"0000", "1000", "2000",
-		"1100", "2100", "2200",
-		"1110", "2110", "2210",
-		"2220", "1111", "2111",
-		"2211", "2221", "2222",
+	pPegs := []string{
+		"0000", "1000", "1100", "1110", "1111", "2000", "2100",
+		"2110", "2111", "2200", "2210", "2211", "2220", "2222",
 	}
-	targetPegs := possiblePegs[strInSlice(pegs, possiblePegs):]
-	ec := make([]int, len(pgg))
-	for i := range ec {
-		ec[i] = 0
-	}
-	for i1, g1 := range pgg {
-		for _, g2 := range gg {
-			if g1 == g2 {
-				continue
-			}
-			cPegs := calculatePegs(g1, g2)
-			if strInSlice(cPegs, targetPegs) < 0 {
-				ec[i1]++
-			}
+	ec := []int{}
+	for _, g1 := range pgg {
+		pegScores := []int{}
+		for range pPegs {
+			pegScores = append(pegScores, 0)
 		}
+		for _, g2 := range gg {
+			p := calculatePegs(g1, g2)
+			pegScores[strInSlice(p, pPegs)]++
+		}
+		_, maxi := minMax(pegScores)
+		ec = append(ec, pegScores[maxi])
 	}
-	_, maxi := minMax(ec)
+	mini, _ := minMax(ec)
 	for i, g := range pgg {
-		if ec[i] != maxi {
+		if ec[i] != ec[mini] {
 			continue
 		}
 		if strInSlice(g, gg) >= 0 {
 			return g
 		}
 	}
-	return pgg[maxi]
+	return pgg[mini]
 }
 
 func calculatePegs(guess string, code string) string {
