@@ -13,29 +13,32 @@ import (
 var pieces = []string{"B", "R", "G", "Y", "P", "W"}
 
 func main() {
-	gg := [][]string{}
+	gg := []string{}
+	pgg := []string{}
 	turn := 0
 	pegs := "0000"
 	switch getDuplicatesAllowed() {
 	case true:
 		gg = genGuessesWithDuplicates(pieces, 4)
+		pgg = genGuessesWithDuplicates(pieces, 4)
 	case false:
-		gg = genGuessesNoDuplicates(pieces, 0, [][]string{})
+		gg = genGuessesNoDuplicates(pieces, 0, []string{})
+		pgg = genGuessesNoDuplicates(pieces, 0, []string{})
 	}
 	switch getGameMode() {
 	case 0:
 		for {
-			gg, turn, pegs = makeGuess(gg, turn, pegs)
+			gg, pgg, turn, pegs = makeGuess(gg, pgg, turn, pegs)
 		}
 	case 1:
 		for {
-			gg, turn, _ = makeGuess(gg, turn, pegs)
-			gg, turn, pegs = getCombi(gg, turn)
+			gg, pgg, turn, _ = makeGuess(gg, pgg, turn, pegs)
+			gg, pgg, turn, pegs = getCombi(gg, pgg, turn)
 		}
 	case 2:
 		for {
-			gg, turn, pegs = getCombi(gg, turn)
-			gg, turn, _ = makeGuess(gg, turn, pegs)
+			gg, pgg, turn, pegs = getCombi(gg, pgg, turn)
+			gg, pgg, turn, _ = makeGuess(gg, pgg, turn, pegs)
 		}
 	}
 }
@@ -63,8 +66,8 @@ func getGameMode() int {
 	return 2
 }
 
-func genGuessesWithDuplicates(a []string, l int) [][]string {
-	gg := [][]string{}
+func genGuessesWithDuplicates(a []string, l int) []string {
+	gg := []string{}
 	gn := make([]int, l)
 	for i := 0; i < l; i++ {
 		gn[i] = 0
@@ -74,7 +77,7 @@ func genGuessesWithDuplicates(a []string, l int) [][]string {
 		for i := range gn {
 			g = append(g, a[gn[i]])
 		}
-		gg = append(gg, g)
+		gg = append(gg, strings.Join(g, ""))
 		ll := l - 1
 		gn[ll]++
 		for ll > 0 {
@@ -90,11 +93,11 @@ func genGuessesWithDuplicates(a []string, l int) [][]string {
 	}
 }
 
-func genGuessesNoDuplicates(a []string, i int, gg [][]string) [][]string {
+func genGuessesNoDuplicates(a []string, i int, gg []string) []string {
 	if i == 4 {
 		aa := make([]string, 4)
 		copy(aa, a)
-		gg = append(gg, aa)
+		gg = append(gg, strings.Join(aa, ""))
 		return gg
 	}
 	gg = genGuessesNoDuplicates(a, i+1, gg)
@@ -106,18 +109,21 @@ func genGuessesNoDuplicates(a []string, i int, gg [][]string) [][]string {
 	return gg
 }
 
-func makeGuess(gg [][]string, turn int, pegs string) ([][]string, int, string) {
-	var guess []string
-	lgg := [][]string{}
-	if len(gg) == 0 {
-		fmt.Println("Invalid peg information. Combination is unsolvable.")
-		os.Exit(1)
-	}
+func makeGuess(gg []string, pgg []string, turn int, pegs string) ([]string, []string, int, string) {
+	var guess string
+	lgg := []string{}
+	checkUnsolvable(gg)
 	switch turn {
 	case 0:
-		guess = []string{"B", "B", "R", "R"}
+		guess = "BBRR"
 	default:
-		guess = minMaxGuess(gg, pegs)
+		guess = minMaxGuess(gg, pgg, pegs)
+	}
+	for i := range pgg {
+		if pgg[i] == guess {
+			pgg = delFromSlice(i, pgg)
+			break
+		}
 	}
 	fmt.Printf("\nMy guess: %s\n", colorPrint(guess))
 	nPegs := getPegs()
@@ -128,16 +134,21 @@ func makeGuess(gg [][]string, turn int, pegs string) ([][]string, int, string) {
 		}
 	}
 	checkCombiFound(lgg)
-	return lgg, turn + 1, nPegs
+	return lgg, pgg, turn + 1, nPegs
 }
 
-func getCombi(gg [][]string, turn int) ([][]string, int, string) {
-	lgg := [][]string{}
+func getCombi(gg []string, pgg []string, turn int) ([]string, []string, int, string) {
+	lgg := []string{}
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Your guess? ")
-	combi, _ := reader.ReadString('\n')
-	combi = strings.ToUpper(combi)
-	guess := strings.Split(combi, "")
+	guess, _ := reader.ReadString('\n')
+	guess = strings.ToUpper(guess[:4])
+	for i := range pgg {
+		if pgg[i] == guess {
+			delFromSlice(i, pgg)
+			break
+		}
+	}
 	nPegs := getPegs()
 	for _, g := range gg {
 		cPegs := calculatePegs(g, guess)
@@ -146,7 +157,7 @@ func getCombi(gg [][]string, turn int) ([][]string, int, string) {
 		}
 	}
 	checkCombiFound(lgg)
-	return lgg, turn + 1, nPegs
+	return lgg, pgg, turn + 1, nPegs
 }
 
 func getPegs() string {
@@ -158,7 +169,7 @@ func getPegs() string {
 	return p[3] + p[2] + p[1] + p[0]
 }
 
-func minMaxGuess(gg [][]string, pegs string) []string {
+func minMaxGuess(gg []string, pgg []string, pegs string) string {
 	possiblePegs := []string{
 		"0000", "1000", "2000",
 		"1100", "2100", "2200",
@@ -167,44 +178,50 @@ func minMaxGuess(gg [][]string, pegs string) []string {
 		"2211", "2221", "2222",
 	}
 	targetPegs := possiblePegs[strInSlice(pegs, possiblePegs):]
-	eliminationCount := make([]int, len(gg))
-	for i := range eliminationCount {
-		eliminationCount[i] = 0
+	ec := make([]int, len(pgg))
+	for i := range ec {
+		ec[i] = 0
 	}
-	for i1, g1 := range gg {
-		for i2, g2 := range gg {
-			if i1 == i2 {
+	for i1, g1 := range pgg {
+		for _, g2 := range gg {
+			if g1 == g2 {
 				continue
 			}
-			cPegs := calculatePegs(g2, g1)
+			cPegs := calculatePegs(g1, g2)
 			if strInSlice(cPegs, targetPegs) < 0 {
-				eliminationCount[i1]++
+				ec[i1]++
 			}
 		}
 	}
-	_, maxi := minMax(eliminationCount)
-	return gg[maxi]
+	_, maxi := minMax(ec)
+	for i, g := range pgg {
+		if ec[i] != maxi {
+			continue
+		}
+		if strInSlice(g, gg) >= 0 {
+			return g
+		}
+	}
+	return pgg[maxi]
 }
 
-func calculatePegs(guess []string, code []string) string {
+func calculatePegs(guess string, code string) string {
 	pegs := []string{}
-	g := make([]string, 4)
-	c := make([]string, 4)
-	copy(g, guess)
-	copy(c, code)
+	g := guess
+	c := code
 	for i := range g {
 		if g[i] == c[i] {
 			pegs = append(pegs, "2")
-			g[i] = "-"
-			c[i] = "+"
+			g = g[:i] + "-" + g[i+1:]
+			c = c[:i] + "+" + c[i+1:]
 		}
 	}
 	for i := range g {
-		ii := strInSlice(g[i], c)
+		ii := strings.Index(c, string(g[i]))
 		if ii >= 0 {
 			pegs = append(pegs, "1")
-			g[i] = "-"
-			c[ii] = "+"
+			g = g[:i] + "-" + g[i+1:]
+			c = c[:ii] + "+" + c[ii+1:]
 		}
 	}
 	for len(pegs) != 4 {
@@ -213,16 +230,24 @@ func calculatePegs(guess []string, code []string) string {
 	return strings.Join(pegs, "")
 }
 
-func checkCombiFound(gg [][]string) {
+func checkCombiFound(gg []string) {
 	if len(gg) == 1 {
 		fmt.Printf("Combination found: %s.\n", colorPrint(gg[0]))
 		os.Exit(0)
 	}
 }
 
-func colorPrint(guess []string) string {
+func checkUnsolvable(gg []string) {
+	if len(gg) == 0 {
+		fmt.Println("Combination is unsolvable.")
+		os.Exit(1)
+	}
+}
+
+func colorPrint(guess string) string {
+	gs := strings.Split(guess, "")
 	colorGuess := ""
-	for _, g := range guess {
+	for _, g := range gs {
 		switch g {
 		case "B":
 			colorGuess += Blue(g).BgBlack().String()
@@ -266,4 +291,11 @@ func strInSlice(x string, a []string) int {
 		}
 	}
 	return -1
+}
+
+func delFromSlice(i int, a []string) []string {
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = ""
+	a = a[:len(a)-1]
+	return a
 }
