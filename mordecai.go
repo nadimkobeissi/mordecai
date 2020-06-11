@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	. "github.com/logrusorgru/aurora"
 )
@@ -107,6 +109,20 @@ func genGuessesNoDuplicates(a []string, i int, gg []string) []string {
 		a[i], a[j] = a[j], a[i]
 	}
 	return gg
+}
+
+func genCode(a []string, l int, dups bool) string {
+	code := ""
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < l; i++ {
+		c := a[rand.Intn(len(a))]
+		for !dups && strings.Contains(code, c) {
+			c = a[rand.Intn(len(a))]
+		}
+		code = code + c
+	}
+	fmt.Println(code)
+	return code
 }
 
 func makeGuess(gg []string, pgg []string, turn int, pegs string) ([]string, []string, int, string) {
