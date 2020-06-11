@@ -38,6 +38,7 @@ func main() {
 			gg, pgg, turn, pegs = getCombi(gg, pgg, turn)
 		}
 	case 2:
+		fmt.Println("")
 		for {
 			gg, pgg, turn, pegs = getCombi(gg, pgg, turn)
 			gg, pgg, turn, _ = makeGuess(gg, pgg, turn, pegs)
